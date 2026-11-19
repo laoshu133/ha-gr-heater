@@ -1,0 +1,52 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "menu_options": {
+          "scan": "在局域网中发现设备",
+          "manual": "输入 IP 地址"
+        }
+      },
+      "scan": {
+        "title": "选择格力热水器",
+        "data": {
+          "device": "热水器"
+        }
+      },
+      "manual": {
+        "title": "连接格力热水器",
+        "data": {
+          "host": "热水器 IPv4 地址"
+        }
+      },
+      "reconfigure": {
+        "title": "更改热水器地址",
+        "data": {
+          "host": "热水器 IPv4 地址"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "无法从该地址读取兼容的格力 V1 热水器。",
+      "invalid_host": "请输入有效的 IPv4 地址。"
+    },
+    "abort": {
+      "already_configured": "此热水器已配置。",
+      "already_in_progress": "此热水器正在配置。",
+      "no_devices": "未发现新的格力热水器。可以返回后输入设备的 IPv4 地址。",
+      "reconfigure_successful": "热水器地址已更新。",
+      "unique_id_mismatch": "该地址属于另一台热水器。",
+      "scan_failed": "无法扫描局域网。请尝试输入热水器的 IPv4 地址。",
+      "cannot_connect": "无法从该地址读取兼容的格力 V1 热水器。",
+      "invalid_host": "请输入有效的 IPv4 地址。"
+    }
+  },
+  "exceptions": {
+    "unconfirmed": {
+      "message": "格力热水器未确认请求的值，请检查设备回读状态。"
+    },
+    "invalid_temperature": {
+      "message": "请在 40 至 80 °C 之间选择整数温度。"
+    }
+  }
+}

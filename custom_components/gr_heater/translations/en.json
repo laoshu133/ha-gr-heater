@@ -1,0 +1,52 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "menu_options": {
+          "scan": "Discover on the local network",
+          "manual": "Enter an IP address"
+        }
+      },
+      "scan": {
+        "title": "Select a Gree heater",
+        "data": {
+          "device": "Heater"
+        }
+      },
+      "manual": {
+        "title": "Connect to a Gree heater",
+        "data": {
+          "host": "Heater IPv4 address"
+        }
+      },
+      "reconfigure": {
+        "title": "Change the heater address",
+        "data": {
+          "host": "Heater IPv4 address"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not read a compatible Gree V1 water heater at this address.",
+      "invalid_host": "Enter a valid IPv4 address."
+    },
+    "abort": {
+      "already_configured": "This heater is already configured.",
+      "already_in_progress": "This heater is already being configured.",
+      "no_devices": "No new Gree heaters were found. Try adding the heater by its IPv4 address.",
+      "reconfigure_successful": "The heater address was updated.",
+      "unique_id_mismatch": "This address belongs to a different heater.",
+      "scan_failed": "Could not scan the local network. Try adding the heater by its IPv4 address.",
+      "cannot_connect": "Could not read a compatible Gree V1 water heater at this address.",
+      "invalid_host": "Enter a valid IPv4 address."
+    }
+  },
+  "exceptions": {
+    "unconfirmed": {
+      "message": "The Gree heater did not confirm the requested value. Check its reported state."
+    },
+    "invalid_temperature": {
+      "message": "Enter a whole-degree target between 40 and 80 °C."
+    }
+  }
+}
