@@ -16,7 +16,7 @@ from homeassistant import loader
 from homeassistant.setup import async_setup_component
 
 from custom_components.gr_heater import protocol
-from custom_components.gr_heater.const import DOMAIN
+from custom_components.gr_heater.const import DOMAIN, MODE_PROFILE
 
 MAC = "020000000001"
 HOST = "127.0.0.1"
@@ -24,9 +24,10 @@ INITIAL_KEY = b"test-device-key!"
 NEXT_KEY = b"fake-new-session"
 ENTITY = "water_heater.gree_air_to_water_heater"
 POWER = "switch.gree_air_to_water_heater_power"
-WATER_LEVEL = "sensor.gree_air_to_water_heater_water_level"
+WATER_LEVEL = "sensor.gree_air_to_water_heater_hot_water_amount"
 MODE_CODE = "sensor.gree_air_to_water_heater_mode_code"
 WORK_STATE_CODE = "sensor.gree_air_to_water_heater_work_state_code"
+OPERATING_MODE = "select.gree_air_to_water_heater_operating_mode"
 
 
 class SimulatedHeater(asyncio.DatagramProtocol):
@@ -235,6 +236,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_power_switch_and_status_sensors(self):
         await self._setup_heater()
+        self.assertIsNone(self.hass.states.get(OPERATING_MODE))
         states = {WATER_LEVEL: "100", MODE_CODE: "1", WORK_STATE_CODE: "0"}
         for entity_id, expected in states.items():
             self.assertEqual(self.hass.states.get(entity_id).state, expected)
@@ -246,6 +248,50 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.hass.states.get(POWER).state, "on")
         self.assertEqual(self._state().state, "on")
         self.assertEqual(self.device.commands, [{"Pow": 0}, {"Pow": 1}])
+
+    async def test_operating_mode_write_and_readback(self):
+        self.device.values["mid"] = MODE_PROFILE
+        entry = await self._setup_heater()
+        self.assertEqual(self.hass.states.get(OPERATING_MODE).state, "eco")
+        self.assertEqual(
+            self.hass.states.get(OPERATING_MODE).attributes["options"],
+            ["standard", "eco", "quick"],
+        )
+        await self._call("select_option", entity_id=OPERATING_MODE, option="quick")
+        self.assertEqual(self.device.commands, [{"Wmod": 2}])
+        self.assertEqual(self.hass.states.get(OPERATING_MODE).state, "quick")
+        self.assertEqual(self.hass.states.get(MODE_CODE).state, "2")
+        self.assertEqual(self.hass.states.get(POWER).state, "on")
+        self.assertEqual(self._state().attributes["temperature"], 55)
+
+        self.device.apply_writes = False
+        with self.assertRaises(HomeAssistantError):
+            await self._call("select_option", entity_id=OPERATING_MODE, option="standard")
+        self.assertEqual(self.device.commands[-1], {"Wmod": 0})
+        self.assertEqual(self.hass.states.get(OPERATING_MODE).state, "quick")
+
+        self.device.values["Wmod"] = 1
+        await entry.runtime_data.async_refresh()
+        self.assertEqual(self.hass.states.get(OPERATING_MODE).state, "eco")
+        self.device.values["Pow"] = 0
+        await entry.runtime_data.async_refresh()
+        self.assertEqual(self.hass.states.get(OPERATING_MODE).state, "unavailable")
+
+    async def test_model_901d_temperature_limits(self):
+        self.device.values["mid"] = MODE_PROFILE
+        await self._setup_heater()
+        self.assertEqual(self._state().attributes["min_temp"], 35)
+        self.assertEqual(self._state().attributes["max_temp"], 55)
+        for temperature in (34, 56):
+            with self.assertRaises(ServiceValidationError):
+                await self._call("set_temperature", temperature=temperature)
+        self.assertEqual(self.device.commands, [])
+        for temperature in (35, 55):
+            await self._call("set_temperature", temperature=temperature)
+            self.assertEqual(self._state().attributes["temperature"], temperature)
+            self.assertEqual(
+                self.device.commands[-1], {"SetTemInt": temperature, "SetTemDec": 0}
+            )
 
     async def test_yaml_import_creates_normal_config_entry(self):
         self.assertTrue(

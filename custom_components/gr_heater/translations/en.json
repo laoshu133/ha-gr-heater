@@ -46,7 +46,7 @@
       "message": "The Gree heater did not confirm the requested value. Check its reported state."
     },
     "invalid_temperature": {
-      "message": "Enter a whole-degree target between 40 and 80 °C."
+      "message": "Enter a whole-degree target between {min_temp} and {max_temp} °C."
     }
   },
   "entity": {
@@ -57,13 +57,23 @@
     },
     "sensor": {
       "water_level": {
-        "name": "Water level"
+        "name": "Hot water amount"
       },
       "mode": {
         "name": "Mode code"
       },
       "work_state": {
         "name": "Work state code"
+      }
+    },
+    "select": {
+      "operating_mode": {
+        "name": "Operating mode",
+        "state": {
+          "standard": "Standard",
+          "eco": "Energy saving",
+          "quick": "Quick"
+        }
       }
     }
   }

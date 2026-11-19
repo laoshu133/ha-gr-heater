@@ -9,7 +9,7 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, MAX_TEMP, MIN_TEMP
+from .const import DOMAIN, MAX_TEMP, MIN_TEMP, MODE_PROFILE, TEMPERATURE_RANGE_901D
 from .coordinator import HeaterConfigEntry, HeaterCoordinator
 
 
@@ -39,6 +39,8 @@ class GreeWaterHeater(CoordinatorEntity[HeaterCoordinator], WaterHeaterEntity):
         super().__init__(entry.runtime_data)
         self._attr_unique_id = self.coordinator.client.mac
         self._attr_device_info = self.coordinator.device_info
+        if self.coordinator.metadata.get("mid") == MODE_PROFILE:
+            self._attr_min_temp, self._attr_max_temp = TEMPERATURE_RANGE_901D
 
     @property
     def native_current_temperature(self) -> float:
@@ -69,11 +71,16 @@ class GreeWaterHeater(CoordinatorEntity[HeaterCoordinator], WaterHeaterEntity):
         """Set a whole Celsius degree and confirm the reported target."""
         temperature = kwargs[ATTR_TEMPERATURE]
         if not isfinite(temperature) or not (
-            MIN_TEMP <= temperature <= MAX_TEMP
+            self._attr_min_temp <= temperature <= self._attr_max_temp
             and int(temperature) == temperature
         ):
             raise ServiceValidationError(
-                translation_domain=DOMAIN, translation_key="invalid_temperature"
+                translation_domain=DOMAIN,
+                translation_key="invalid_temperature",
+                translation_placeholders={
+                    "min_temp": str(self._attr_min_temp),
+                    "max_temp": str(self._attr_max_temp),
+                },
             )
         values = {"SetTemInt": int(temperature)}
         if self.coordinator.data.target_decimal is not None:

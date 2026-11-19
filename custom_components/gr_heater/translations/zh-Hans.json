@@ -46,7 +46,7 @@
       "message": "格力热水器未确认请求的值，请检查设备回读状态。"
     },
     "invalid_temperature": {
-      "message": "请在 40 至 80 °C 之间选择整数温度。"
+      "message": "请在 {min_temp} 至 {max_temp} °C 之间选择整数温度。"
     }
   },
   "entity": {
@@ -57,13 +57,23 @@
     },
     "sensor": {
       "water_level": {
-        "name": "水位"
+        "name": "热水量"
       },
       "mode": {
         "name": "模式代码"
       },
       "work_state": {
         "name": "工作状态代码"
+      }
+    },
+    "select": {
+      "operating_mode": {
+        "name": "运行模式",
+        "state": {
+          "standard": "标准",
+          "eco": "节能",
+          "quick": "快速"
+        }
       }
     }
   }

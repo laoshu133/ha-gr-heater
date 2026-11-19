@@ -19,15 +19,18 @@ gr_heater:
 
 ## Controls and readings
 
-- A `water_heater` entity reports the current and target water temperatures and the power state. It supports the `water_heater.set_temperature`, `water_heater.turn_on`, and `water_heater.turn_off` actions. Targets are whole degrees Celsius between 40 and 80, based on the public heat-pump field reference. A unit may impose a narrower range.
+- A `water_heater` entity reports the current and target water temperatures and the power state. It supports the `water_heater.set_temperature`, `water_heater.turn_on`, and `water_heater.turn_off` actions. The tested `901d` device accepts whole-degree targets from 35 to 55 °C. The general V1 profile uses the public heat-pump range of 40 to 80 °C.
 - A separate **Power** switch controls the same `Pow` value. It appears under the heater's device alongside the temperature control.
 - Home Assistant polls every 30 seconds. After a write, it reads device status and reports an error if it cannot confirm the requested value.
-- On devices that report these fields, **Water level**, **Mode code**, and **Work state code** are available as sensors. The water heater also retains its `water_level_percent`, `gree_mode`, and `gree_work_state` attributes. Both codes are read-only raw values.
+- On devices that report these fields, **Hot water amount**, **Mode code**, and **Work state code** are available as sensors. The water heater also exposes the corresponding `water_level_percent`, `gree_mode`, and `gree_work_state` attributes. Both codes are read-only raw values.
+- For protocol model ID `901d`, the **Operating mode** selector offers **Standard**, **Energy saving**, and **Quick** while the heater is on. The integration confirms each mode change by reading back `Wmod`.
 - Discovery lists devices advertising names that start with `GR-Heater`. Manual setup accepts a device when its V1 status contains the water-heater fields. Broadcast discovery requires local broadcast reachability. Manual entry requires direct UDP reachability.
 
 ## Compatibility
 
 The initial target is a Gree V1.2.1 Wi-Fi module advertising discovery ID `9100` and reporting status model ID `901d`. These IDs identify protocol metadata. The appliance’s nameplate model and other device variants are unverified.
+
+On this device, the Gree app displayed Standard, Energy saving, and Quick for `Wmod` values 0, 1, and 2. The app showed Keep warm when `Wstate` was 0. Turning on a saved schedule in the Gree app left the locally readable `WschOn`, `WschOff`, `TmrOn`, and `TmrOff` values at zero. Gree app schedules are currently outside the supported local controls.
 
 ## Development
 

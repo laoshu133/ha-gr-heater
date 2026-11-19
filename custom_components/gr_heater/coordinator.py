@@ -80,14 +80,13 @@ class HeaterCoordinator(DataUpdateCoordinator[HeaterState]):
                 ) from err
 
             self.async_set_updated_data(state)
-            if "Pow" in values:
-                confirmed = state.power == values["Pow"]
-            else:
-                confirmed = state.target_integer == values["SetTemInt"] and (
-                    "SetTemDec" not in values
-                    or state.target_decimal == values["SetTemDec"]
-                )
-            if not confirmed:
+            reported = {
+                "Pow": state.power,
+                "Wmod": state.mode,
+                "SetTemInt": state.target_integer,
+                "SetTemDec": state.target_decimal,
+            }
+            if any(reported[field] != value for field, value in values.items()):
                 raise HomeAssistantError(
                     translation_domain=DOMAIN, translation_key="unconfirmed"
                 )
