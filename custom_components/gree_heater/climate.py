@@ -26,7 +26,7 @@ class GreeHeaterThermostat(CoordinatorEntity[HeaterCoordinator], ClimateEntity):
 
     _attr_has_entity_name = True
     _attr_translation_key = "thermostat"
-    _attr_temperature_unit = UnitOfTemperature.CELSIUS
+    _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_target_temperature_step = 1
     _attr_min_temp, _attr_max_temp = TEMPERATURE_RANGE_901D
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT]
@@ -53,11 +53,11 @@ class GreeHeaterThermostat(CoordinatorEntity[HeaterCoordinator], ClimateEntity):
         return None
 
     @property
-    def current_temperature(self) -> float:
+    def native_current_temperature(self) -> float:
         return self.coordinator.data.current_temperature
 
     @property
-    def target_temperature(self) -> float:
+    def native_target_temperature(self) -> float:
         return self.coordinator.data.target_temperature
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
