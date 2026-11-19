@@ -7,6 +7,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_MAC
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DOMAIN, NAME, POLL_INTERVAL
@@ -25,6 +26,7 @@ class HeaterCoordinator(DataUpdateCoordinator[HeaterState]):
             hass, _LOGGER, config_entry=entry, name=NAME, update_interval=POLL_INTERVAL
         )
         self.client = GreeClient(entry.data[CONF_HOST], entry.data[CONF_MAC])
+        self.firmware = entry.data.get("firmware")
         self.metadata: dict[str, str] = {}
         self._io_lock = asyncio.Lock()
 
@@ -34,6 +36,20 @@ class HeaterCoordinator(DataUpdateCoordinator[HeaterState]):
             self.metadata = await self.client.metadata()
         except GreeError:
             pass
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Share one device registry entry across the heater and its controls."""
+        mac = self.client.mac
+        return DeviceInfo(
+            identifiers={(DOMAIN, mac)},
+            connections={(CONNECTION_NETWORK_MAC, mac)},
+            name=NAME,
+            manufacturer="Gree",
+            model="Air-to-water heater",
+            model_id=self.metadata.get("mid"),
+            sw_version=self.firmware,
+        )
 
     async def _async_update_data(self) -> HeaterState:
         async with self._io_lock:

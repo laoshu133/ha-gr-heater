@@ -6,11 +6,10 @@ from homeassistant.components.water_heater import WaterHeaterEntity, WaterHeater
 from homeassistant.const import ATTR_TEMPERATURE, STATE_OFF, STATE_ON, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
-from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, MAX_TEMP, MIN_TEMP, NAME
+from .const import DOMAIN, MAX_TEMP, MIN_TEMP
 from .coordinator import HeaterConfigEntry, HeaterCoordinator
 
 
@@ -38,17 +37,8 @@ class GreeWaterHeater(CoordinatorEntity[HeaterCoordinator], WaterHeaterEntity):
 
     def __init__(self, entry: HeaterConfigEntry) -> None:
         super().__init__(entry.runtime_data)
-        mac = self.coordinator.client.mac
-        self._attr_unique_id = mac
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, mac)},
-            connections={(CONNECTION_NETWORK_MAC, mac)},
-            name=NAME,
-            manufacturer="Gree",
-            model="Air-to-water heater",
-            model_id=self.coordinator.metadata.get("mid"),
-            sw_version=entry.data.get("firmware"),
-        )
+        self._attr_unique_id = self.coordinator.client.mac
+        self._attr_device_info = self.coordinator.device_info
 
     @property
     def native_current_temperature(self) -> float:

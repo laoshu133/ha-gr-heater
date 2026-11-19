@@ -48,5 +48,23 @@
     "invalid_temperature": {
       "message": "请在 40 至 80 °C 之间选择整数温度。"
     }
+  },
+  "entity": {
+    "switch": {
+      "power": {
+        "name": "电源"
+      }
+    },
+    "sensor": {
+      "water_level": {
+        "name": "水位"
+      },
+      "mode": {
+        "name": "模式代码"
+      },
+      "work_state": {
+        "name": "工作状态代码"
+      }
+    }
   }
 }

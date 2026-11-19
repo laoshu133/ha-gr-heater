@@ -10,7 +10,7 @@ from homeassistant.helpers.typing import ConfigType
 from .const import DOMAIN
 from .coordinator import HeaterConfigEntry, HeaterCoordinator
 
-_PLATFORMS = (Platform.WATER_HEATER,)
+_PLATFORMS = (Platform.WATER_HEATER, Platform.SWITCH, Platform.SENSOR)
 CONFIG_SCHEMA = vol.Schema(
     {DOMAIN: vol.Schema({vol.Required(CONF_HOST): str})}, extra=vol.ALLOW_EXTRA
 )

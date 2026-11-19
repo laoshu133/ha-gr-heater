@@ -48,5 +48,23 @@
     "invalid_temperature": {
       "message": "Enter a whole-degree target between 40 and 80 °C."
     }
+  },
+  "entity": {
+    "switch": {
+      "power": {
+        "name": "Power"
+      }
+    },
+    "sensor": {
+      "water_level": {
+        "name": "Water level"
+      },
+      "mode": {
+        "name": "Mode code"
+      },
+      "work_state": {
+        "name": "Work state code"
+      }
+    }
   }
 }

@@ -23,6 +23,10 @@ HOST = "127.0.0.1"
 INITIAL_KEY = b"test-device-key!"
 NEXT_KEY = b"fake-new-session"
 ENTITY = "water_heater.gree_air_to_water_heater"
+POWER = "switch.gree_air_to_water_heater_power"
+WATER_LEVEL = "sensor.gree_air_to_water_heater_water_level"
+MODE_CODE = "sensor.gree_air_to_water_heater_mode_code"
+WORK_STATE_CODE = "sensor.gree_air_to_water_heater_work_state_code"
 
 
 class SimulatedHeater(asyncio.DatagramProtocol):
@@ -153,9 +157,9 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(state)
         return state
 
-    async def _call(self, service, **data):
+    async def _call(self, service, *, entity_id=ENTITY, **data):
         await self.hass.services.async_call(
-            "water_heater", service, {"entity_id": ENTITY, **data}, blocking=True
+            entity_id.split(".")[0], service, {"entity_id": entity_id, **data}, blocking=True
         )
 
     async def test_discovery_metadata_dedup_and_reconfigure(self):
@@ -223,9 +227,25 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.device.values.pop("Pow")
         await entry.runtime_data.async_refresh()
         self.assertEqual(self._state().state, "unavailable")
+        self.assertEqual(self.hass.states.get(POWER).state, "unavailable")
         self.device.values["Pow"] = 1
         await entry.runtime_data.async_refresh()
         self.assertEqual(self._state().state, "on")
+        self.assertEqual(self.hass.states.get(POWER).state, "on")
+
+    async def test_power_switch_and_status_sensors(self):
+        await self._setup_heater()
+        states = {WATER_LEVEL: "100", MODE_CODE: "1", WORK_STATE_CODE: "0"}
+        for entity_id, expected in states.items():
+            self.assertEqual(self.hass.states.get(entity_id).state, expected)
+        await self._call("turn_off", entity_id=POWER)
+        self.assertEqual(self.hass.states.get(POWER).state, "off")
+        self.assertEqual(self._state().state, "off")
+        self.assertEqual(self.hass.states.get(MODE_CODE).state, "1")
+        await self._call("turn_on", entity_id=POWER)
+        self.assertEqual(self.hass.states.get(POWER).state, "on")
+        self.assertEqual(self._state().state, "on")
+        self.assertEqual(self.device.commands, [{"Pow": 0}, {"Pow": 1}])
 
     async def test_yaml_import_creates_normal_config_entry(self):
         self.assertTrue(

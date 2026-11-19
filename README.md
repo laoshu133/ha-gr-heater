@@ -20,8 +20,9 @@ gr_heater:
 ## Controls and readings
 
 - A `water_heater` entity reports the current and target water temperatures and the power state. It supports the `water_heater.set_temperature`, `water_heater.turn_on`, and `water_heater.turn_off` actions. Targets are whole degrees Celsius between 40 and 80, based on the public heat-pump field reference. A unit may impose a narrower range.
+- A separate **Power** switch controls the same `Pow` value. It appears under the heater's device alongside the temperature control.
 - Home Assistant polls every 30 seconds. After a write, it reads device status and reports an error if it cannot confirm the requested value.
-- When supplied by the device, `gree_work_state` and `gree_mode` show the raw `Wstate` and `Wmod` codes. `water_level_percent` shows the decoded tank level. Operating-mode changes are unavailable.
+- On devices that report these fields, **Water level**, **Mode code**, and **Work state code** are available as sensors. The water heater also retains its `water_level_percent`, `gree_mode`, and `gree_work_state` attributes. Both codes are read-only raw values.
 - Discovery lists devices advertising names that start with `GR-Heater`. Manual setup accepts a device when its V1 status contains the water-heater fields. Broadcast discovery requires local broadcast reachability. Manual entry requires direct UDP reachability.
 
 ## Compatibility
