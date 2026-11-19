@@ -4,9 +4,11 @@ A local Home Assistant integration for Gree air-to-water heat pump water heaters
 
 ## Installation
 
-1. In HACS, open **Custom repositories**, add `https://github.com/laoshu133/ha-gr-heater` as an **Integration**, and download **Gree Air-to-Water Heater**.
-2. Restart Home Assistant.
-3. Go to **Settings → Devices & services → Add integration → Gree Air-to-Water Heater**. Select **Discover on the local network**, or **Enter an IP address** to connect directly by IPv4.
+1. Open **Settings → Marketplace** and choose **Add from link**. Paste `https://github.com/laoshu133/ha-gr-heater`.
+2. Find **Gree Air-to-Water Heater** in Marketplace and select **Install**. Restart Home Assistant if prompted.
+3. Open the integration setup flow. You can also find it under **Settings → Devices & services → Add integration**. Select **Discover on the local network** for devices advertising names that start with `GR-Heater`, or **Enter an IP address** to connect directly by IPv4.
+
+For an existing manual installation, install the same release through Marketplace and restart when prompted. Home Assistant keeps the existing devices and entities from the `gr_heater` configuration entry.
 
 For manual installation, copy `custom_components/gr_heater` into Home Assistant’s `custom_components` directory, then restart and follow the same setup flow. Setups are deduplicated by device MAC. If the address changes, the integration can rediscover the heater by MAC on the local network. Use **Reconfigure** on the integration entry to save a different address.
 
@@ -36,7 +38,6 @@ features:
 ```
 
 Apple Home exposes **Off** and **Heat** for this accessory through the Home Assistant HomeKit Bridge. [HomeKit Bridge water heater mapping](https://github.com/home-assistant/core/blob/2026.11.2/homeassistant/components/homekit/type_thermostats.py#L539-L704)
-- Discovery lists devices advertising names that start with `GR-Heater`. Manual setup accepts a device when its V1 status contains the water-heater fields. Broadcast discovery requires local broadcast reachability. Manual entry requires direct UDP reachability.
 
 ## Compatibility
 
