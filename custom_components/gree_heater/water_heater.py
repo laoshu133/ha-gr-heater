@@ -5,12 +5,10 @@ from math import isfinite
 from homeassistant.components.water_heater import WaterHeaterEntity, WaterHeaterEntityFeature
 from homeassistant.const import ATTR_TEMPERATURE, STATE_OFF, STATE_ON, UnitOfTemperature
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
-    DOMAIN,
     MAX_TEMP,
     MIN_TEMP,
     MODES,
@@ -98,18 +96,10 @@ class GreeWaterHeater(CoordinatorEntity[HeaterCoordinator], WaterHeaterEntity):
             self._attr_min_temp <= temperature <= self._attr_max_temp
             and int(temperature) == temperature
         ):
-            raise ServiceValidationError(
-                translation_domain=DOMAIN,
-                translation_key="invalid_temperature",
-                translation_placeholders={
-                    "min_temp": str(self._attr_min_temp),
-                    "max_temp": str(self._attr_max_temp),
-                },
+            raise self.coordinator.invalid_temperature(
+                self._attr_min_temp, self._attr_max_temp
             )
-        values = {"SetTemInt": int(temperature)}
-        if self.coordinator.data.target_decimal is not None:
-            values["SetTemDec"] = 0
-        await self.coordinator.async_write(values)
+        await self.coordinator.async_set_target_temperature(int(temperature))
 
     async def async_turn_on(self) -> None:
         await self.coordinator.async_write({"Pow": 1})

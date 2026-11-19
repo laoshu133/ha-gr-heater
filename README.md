@@ -1,21 +1,21 @@
-# Gree Air-to-Water Heater for Home Assistant
+# ha-gree-heater · Gree Heat Pump Water Heater for Home Assistant
 
 A local Home Assistant integration for Gree air-to-water heat pump water heaters that speak the Gree V1 UDP protocol. It uses UDP port 7000 and requires Home Assistant 2026.11.2 or newer.
 
 ## Installation
 
-1. Open **Settings → Marketplace** and choose **Add from link**. Paste `https://github.com/laoshu133/ha-gr-heater`.
-2. Find **Gree Air-to-Water Heater** in Marketplace and select **Install**. Restart Home Assistant if prompted.
+1. Open **Settings → Marketplace** and choose **Add from link**. Paste `https://github.com/laoshu133/ha-gree-heater`.
+2. Find **Gree Heat Pump Water Heater** in Marketplace and select **Install**. Restart Home Assistant if prompted.
 3. Open the integration setup flow. You can also find it under **Settings → Devices & services → Add integration**. Select **Discover on the local network** for devices advertising names that start with `GR-Heater`, or **Enter an IP address** to connect directly by IPv4.
 
-For an existing manual installation, install the same release through Marketplace and restart when prompted. Home Assistant keeps the existing devices and entities from the `gr_heater` configuration entry.
+To migrate from an earlier release using the `gr_heater` domain, make the new `gree_heater` integration available in Home Assistant and add it using the same heater's IPv4 address. The new configuration flow transfers the existing device and entity registry entries by MAC. Once the new entry is loaded, remove the old package through Marketplace, then register and install this release there to manage updates.
 
-For manual installation, copy `custom_components/gr_heater` into Home Assistant’s `custom_components` directory, then restart and follow the same setup flow. Setups are deduplicated by device MAC. If the address changes, the integration can rediscover the heater by MAC on the local network. Use **Reconfigure** on the integration entry to save a different address.
+For manual installation, copy `custom_components/gree_heater` into Home Assistant’s `custom_components` directory, then restart and follow the same setup flow. Setups are deduplicated by device MAC. If the address changes, the integration can rediscover the heater by MAC on the local network. Use **Reconfigure** on the integration entry to save a different address.
 
 For unattended setup, add the following top-level section to `configuration.yaml` and restart. Replace the example address with the heater’s IPv4 address. After import, the device appears under **Devices & services** and the YAML section can be removed.
 
 ```yaml
-gr_heater:
+gree_heater:
   host: 192.0.2.10
 ```
 
@@ -37,7 +37,7 @@ features:
     style: dropdown
 ```
 
-Apple Home exposes **Off** and **Heat** for this accessory through the Home Assistant HomeKit Bridge. [HomeKit Bridge water heater mapping](https://github.com/home-assistant/core/blob/2026.11.2/homeassistant/components/homekit/type_thermostats.py#L539-L704)
+For Apple Home, include the **HomeKit thermostat** (`climate`) entity and exclude the `water_heater` entity in HomeKit Bridge. It offers **Off** and **Heat**. The current activity shows idle during keep-warm mode and heating when the appliance reports active heating. Fractional temperatures from HomeKit round to the nearest whole degree within 35–55 °C, with half degrees rounding up. [HomeKit Bridge water heater mapping](https://github.com/home-assistant/core/blob/2026.11.2/homeassistant/components/homekit/type_thermostats.py#L539-L704)
 
 ## Compatibility
 

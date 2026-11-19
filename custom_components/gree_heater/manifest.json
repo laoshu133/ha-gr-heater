@@ -1,0 +1,12 @@
+{
+  "domain": "gree_heater",
+  "name": "Gree Heat Pump Water Heater",
+  "codeowners": ["@laoshu133"],
+  "config_flow": true,
+  "documentation": "https://github.com/laoshu133/ha-gree-heater",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/laoshu133/ha-gree-heater/issues",
+  "requirements": [],
+  "version": "0.3.0"
+}

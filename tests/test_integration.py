@@ -4,30 +4,33 @@ import asyncio
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import MappingProxyType
 import unittest
 from unittest.mock import patch
 
 from homeassistant.bootstrap import async_from_config_dict
-from homeassistant.config_entries import ConfigEntryState
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant import loader
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.setup import async_setup_component
 
-from custom_components.gr_heater import protocol
-from custom_components.gr_heater.const import DOMAIN, MODE_PROFILE
+from custom_components.gree_heater import protocol
+from custom_components.gree_heater.const import DOMAIN, MODE_PROFILE
 
 MAC = "020000000001"
 HOST = "127.0.0.1"
 INITIAL_KEY = b"test-device-key!"
 NEXT_KEY = b"fake-new-session"
-ENTITY = "water_heater.gree_air_to_water_heater"
-POWER = "switch.gree_air_to_water_heater_power"
-WATER_LEVEL = "sensor.gree_air_to_water_heater_hot_water_amount"
-MODE_CODE = "sensor.gree_air_to_water_heater_mode_code"
-WORK_STATE_CODE = "sensor.gree_air_to_water_heater_work_state_code"
-OPERATING_MODE = "select.gree_air_to_water_heater_operating_mode"
+ENTITY = "water_heater.gree_heat_pump_water_heater"
+POWER = "switch.gree_heat_pump_water_heater_power"
+WATER_LEVEL = "sensor.gree_heat_pump_water_heater_hot_water_amount"
+MODE_CODE = "sensor.gree_heat_pump_water_heater_mode_code"
+WORK_STATE_CODE = "sensor.gree_heat_pump_water_heater_work_state_code"
+OPERATING_MODE = "select.gree_heat_pump_water_heater_operating_mode"
+THERMOSTAT = "climate.gree_heat_pump_water_heater_homekit_thermostat"
 
 
 class SimulatedHeater(asyncio.DatagramProtocol):
@@ -38,6 +41,8 @@ class SimulatedHeater(asyncio.DatagramProtocol):
         self.bound = 0
         self.apply_writes = True
         self.drop_ack = False
+        self.defer_write = False
+        self.pending_write = None
         self.mismatch = False
         self.commands = []
         self.queries = []
@@ -92,10 +97,15 @@ class SimulatedHeater(asyncio.DatagramProtocol):
                     cols = [col for col in cols if col in self.values]
                     values = [self.values[col] for col in cols]
                 self._reply({"t": "dat", "cols": cols, "dat": values}, key, address)
+                if self.pending_write is not None:
+                    self.values.update(self.pending_write)
+                    self.pending_write = None
             case "cmd":
                 values = dict(zip(data["opt"], data["p"], strict=True))
                 self.commands.append(values)
-                if self.apply_writes:
+                if self.defer_write:
+                    self.pending_write = values
+                elif self.apply_writes:
                     self.values.update(values)
                 if not self.drop_ack:
                     self._reply({"t": "res"}, key, address)
@@ -309,6 +319,55 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(
                 self.device.commands[-1], {"SetTemInt": temperature, "SetTemDec": 0}
             )
+
+    async def test_homekit_thermostat_rounds_and_waits_for_readback(self):
+        self.device.values["mid"] = MODE_PROFILE
+        entry = await self._setup_heater()
+        state = self.hass.states.get(THERMOSTAT)
+        self.assertEqual(state.state, "heat")
+        self.assertEqual(state.attributes["hvac_action"], "idle")
+        self.device.defer_write = True
+        await self._call("set_temperature", entity_id=THERMOSTAT, temperature=51.5)
+        self.assertEqual(self.device.commands, [{"SetTemInt": 52, "SetTemDec": 0}])
+        self.assertEqual(self.hass.states.get(THERMOSTAT).attributes["temperature"], 52)
+        self.assertEqual(self._state().attributes["temperature"], 52)
+        self.device.values["Wstate"] = 1
+        await entry.runtime_data.async_refresh()
+        self.assertEqual(self.hass.states.get(THERMOSTAT).attributes["hvac_action"], "heating")
+        self.device.values["Pow"] = 0
+        await entry.runtime_data.async_refresh()
+        self.assertEqual(self.hass.states.get(THERMOSTAT).attributes["hvac_action"], "off")
+
+    async def test_migrates_legacy_registry_ids(self):
+        legacy = ConfigEntry(
+            version=1, minor_version=1, domain="gr_heater", title="Previous heater",
+            data={"host": HOST, "mac": MAC}, source="user", options={}, unique_id=MAC,
+            discovery_keys=MappingProxyType({}), subentries_data=[],
+        )
+        self.hass.config_entries._entries[legacy.entry_id] = legacy
+        devices = dr.async_get(self.hass)
+        device = devices.async_get_or_create(
+            config_entry_id=legacy.entry_id,
+            identifiers={("gr_heater", MAC)},
+            connections={(dr.CONNECTION_NETWORK_MAC, MAC)},
+        )
+        registry = er.async_get(self.hass)
+        previous = registry.async_get_or_create(
+            "water_heater", "gr_heater", MAC, config_entry=legacy,
+            device_id=device.id, suggested_object_id="previous_heater",
+        )
+        result = await self._configure()
+        self.assertEqual(result["type"], FlowResultType.CREATE_ENTRY)
+        entry = result["result"]
+        self.assertIs(entry.state, ConfigEntryState.LOADED)
+        new = registry.async_get(previous.entity_id)
+        self.assertIsNotNone(new)
+        self.assertEqual(new.id, previous.id)
+        self.assertEqual(new.device_id, device.id)
+        self.assertEqual(new.platform, DOMAIN)
+        self.assertEqual(new.config_entry_id, entry.entry_id)
+        self.assertIsNone(self.hass.config_entries.async_get_entry(legacy.entry_id))
+        self.assertIsNotNone(self.hass.states.get(previous.entity_id))
 
     async def test_yaml_import_creates_normal_config_entry(self):
         self.assertTrue(

@@ -6,7 +6,7 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_MAC
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -68,25 +68,58 @@ class HeaterCoordinator(DataUpdateCoordinator[HeaterState]):
                     pass
                 raise UpdateFailed(str(err)) from err
 
-    async def async_write(self, values: dict[str, int]) -> None:
-        """Update HA from the device's reply and report any unconfirmed command."""
-        async with self._io_lock:
-            try:
-                state = await self.client.write(values)
-            except GreeError as err:
-                self.async_set_update_error(UpdateFailed(str(err)))
-                raise HomeAssistantError(
-                    translation_domain=DOMAIN, translation_key="unconfirmed"
-                ) from err
+    @staticmethod
+    def invalid_temperature(minimum: float, maximum: float) -> ServiceValidationError:
+        """Use the integration's shared target temperature validation message."""
+        return ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="invalid_temperature",
+            translation_placeholders={"min_temp": str(minimum), "max_temp": str(maximum)},
+        )
 
-            self.async_set_updated_data(state)
-            reported = {
-                "Pow": state.power,
-                "Wmod": state.mode,
-                "SetTemInt": state.target_integer,
-                "SetTemDec": state.target_decimal,
-            }
-            if any(reported[field] != value for field, value in values.items()):
-                raise HomeAssistantError(
-                    translation_domain=DOMAIN, translation_key="unconfirmed"
-                )
+    async def async_set_target_temperature(self, temperature: int) -> None:
+        """Write an integer Celsius setpoint and wait for the device to report it."""
+        async with self._io_lock:
+            values = {"SetTemInt": temperature}
+            if self.data.target_decimal is not None:
+                values["SetTemDec"] = 0
+            await self._async_write(values, confirmation_delays=(0.25, 0.75))
+
+    async def async_write(self, values: dict[str, int]) -> None:
+        """Write power or mode with immediate readback."""
+        async with self._io_lock:
+            await self._async_write(values)
+
+    async def _async_write(
+        self, values: dict[str, int], *, confirmation_delays: tuple[float, ...] = ()
+    ) -> None:
+        try:
+            state = await self.client.write(values)
+            for delay in confirmation_delays:
+                if self._matches(state, values):
+                    break
+                # Some devices report the previous target briefly. Re-read without
+                # sending another command or publishing the old target to the bridge.
+                await asyncio.sleep(delay)
+                state = await self.client.read()
+        except GreeError as err:
+            self.async_set_update_error(UpdateFailed(str(err)))
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="unconfirmed"
+            ) from err
+
+        self.async_set_updated_data(state)
+        if not self._matches(state, values):
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="unconfirmed"
+            )
+
+    @staticmethod
+    def _matches(state: HeaterState, values: dict[str, int]) -> bool:
+        reported = {
+            "Pow": state.power,
+            "Wmod": state.mode,
+            "SetTemInt": state.target_integer,
+            "SetTemDec": state.target_decimal,
+        }
+        return all(reported[field] == value for field, value in values.items())

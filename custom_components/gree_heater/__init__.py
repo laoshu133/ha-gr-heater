@@ -9,8 +9,9 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
 from .coordinator import HeaterConfigEntry, HeaterCoordinator
+from .migration import async_migrate_legacy_entry
 
-_PLATFORMS = (Platform.WATER_HEATER, Platform.SWITCH, Platform.SENSOR, Platform.SELECT)
+_PLATFORMS = (Platform.WATER_HEATER, Platform.SWITCH, Platform.SENSOR, Platform.SELECT, Platform.CLIMATE)
 CONFIG_SCHEMA = vol.Schema(
     {DOMAIN: vol.Schema({vol.Required(CONF_HOST): str})}, extra=vol.ALLOW_EXTRA
 )
@@ -32,8 +33,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: HeaterConfigEntry) -> bo
     coordinator = HeaterCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
     await coordinator.async_load_metadata()
+    legacy = await async_migrate_legacy_entry(hass, entry)
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, _PLATFORMS)
+    if legacy is not None:
+        await hass.config_entries.async_remove(legacy.entry_id)
     return True
 
 
