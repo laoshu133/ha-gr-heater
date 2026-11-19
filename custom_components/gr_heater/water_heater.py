@@ -9,7 +9,15 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, MAX_TEMP, MIN_TEMP, MODE_PROFILE, TEMPERATURE_RANGE_901D
+from .const import (
+    DOMAIN,
+    MAX_TEMP,
+    MIN_TEMP,
+    MODES,
+    MODE_NAMES,
+    MODE_PROFILE,
+    TEMPERATURE_RANGE_901D,
+)
 from .coordinator import HeaterConfigEntry, HeaterCoordinator
 
 
@@ -27,6 +35,7 @@ class GreeWaterHeater(CoordinatorEntity[HeaterCoordinator], WaterHeaterEntity):
 
     _attr_has_entity_name = True
     _attr_name = None
+    _attr_translation_key = "heater"
     _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_min_temp = MIN_TEMP
     _attr_max_temp = MAX_TEMP
@@ -41,6 +50,9 @@ class GreeWaterHeater(CoordinatorEntity[HeaterCoordinator], WaterHeaterEntity):
         self._attr_device_info = self.coordinator.device_info
         if self.coordinator.metadata.get("mid") == MODE_PROFILE:
             self._attr_min_temp, self._attr_max_temp = TEMPERATURE_RANGE_901D
+            if self.coordinator.data.mode is not None:
+                self._attr_supported_features |= WaterHeaterEntityFeature.OPERATION_MODE
+                self._attr_operation_list = [STATE_OFF, *MODES]
 
     @property
     def native_current_temperature(self) -> float:
@@ -52,7 +64,19 @@ class GreeWaterHeater(CoordinatorEntity[HeaterCoordinator], WaterHeaterEntity):
 
     @property
     def current_operation(self) -> str:
-        return STATE_ON if self.coordinator.data.power else STATE_OFF
+        data = self.coordinator.data
+        if not data.power:
+            return STATE_OFF
+        if WaterHeaterEntityFeature.OPERATION_MODE in self.supported_features:
+            return MODE_NAMES.get(data.mode, STATE_ON)
+        return STATE_ON
+
+    async def async_set_operation_mode(self, operation_mode: str) -> None:
+        """Select the mode, powering on when a heating mode is requested."""
+        if operation_mode == STATE_OFF:
+            await self.async_turn_off()
+        else:
+            await self.coordinator.async_write({"Pow": 1, "Wmod": MODES[operation_mode]})
 
     @property
     def extra_state_attributes(self) -> dict[str, int]:

@@ -75,6 +75,26 @@
           "quick": "Quick"
         }
       }
+    },
+    "water_heater": {
+      "heater": {
+        "state": {
+          "off": "Off",
+          "standard": "Standard",
+          "eco": "Energy saving",
+          "quick": "Quick"
+        },
+        "state_attributes": {
+          "operation_mode": {
+            "state": {
+              "off": "Off",
+              "standard": "Standard",
+              "eco": "Energy saving",
+              "quick": "Quick"
+            }
+          }
+        }
+      }
     }
   }
 }

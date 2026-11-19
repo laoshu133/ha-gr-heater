@@ -5,11 +5,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import MODES, MODE_PROFILE
+from .const import MODES, MODE_NAMES, MODE_PROFILE
 from .coordinator import HeaterConfigEntry, HeaterCoordinator
-
-_MODE_NAMES = {code: name for name, code in MODES.items()}
-
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -36,7 +33,7 @@ class GreeHeaterMode(CoordinatorEntity[HeaterCoordinator], SelectEntity):
 
     @property
     def current_option(self) -> str | None:
-        return _MODE_NAMES.get(self.coordinator.data.mode)
+        return MODE_NAMES.get(self.coordinator.data.mode)
 
     @property
     def available(self) -> bool:

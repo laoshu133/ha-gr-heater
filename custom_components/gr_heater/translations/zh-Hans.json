@@ -75,6 +75,26 @@
           "quick": "快速"
         }
       }
+    },
+    "water_heater": {
+      "heater": {
+        "state": {
+          "off": "关闭",
+          "standard": "标准",
+          "eco": "节能",
+          "quick": "快速"
+        },
+        "state_attributes": {
+          "operation_mode": {
+            "state": {
+              "off": "关闭",
+              "standard": "标准",
+              "eco": "节能",
+              "quick": "快速"
+            }
+          }
+        }
+      }
     }
   }
 }

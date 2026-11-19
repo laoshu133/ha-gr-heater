@@ -10,3 +10,4 @@ MAX_TEMP = 80
 MODE_PROFILE = "901d"
 TEMPERATURE_RANGE_901D = (35, 55)
 MODES = {"standard": 0, "eco": 1, "quick": 2}
+MODE_NAMES = {code: name for name, code in MODES.items()}

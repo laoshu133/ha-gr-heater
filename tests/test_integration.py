@@ -116,8 +116,8 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(transport.close)
         for name, value in {
             "PORT": transport.get_extra_info("sockname")[1],
-            "REQUEST_TIMEOUT": 0.25,
-            "SCAN_TIMEOUT": 0.15,
+            "REQUEST_TIMEOUT": 0.5,
+            "SCAN_TIMEOUT": 0.5,
             "_BROADCAST": "127.255.255.255",
         }.items():
             patcher = patch.object(protocol, name, value)
@@ -253,6 +253,11 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.device.values["mid"] = MODE_PROFILE
         entry = await self._setup_heater()
         self.assertEqual(self.hass.states.get(OPERATING_MODE).state, "eco")
+        self.assertEqual(self._state().state, "eco")
+        self.assertEqual(self._state().attributes["operation_mode"], "eco")
+        self.assertEqual(
+            self._state().attributes["operation_list"], ["off", "standard", "eco", "quick"]
+        )
         self.assertEqual(
             self.hass.states.get(OPERATING_MODE).attributes["options"],
             ["standard", "eco", "quick"],
@@ -276,6 +281,18 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.device.values["Pow"] = 0
         await entry.runtime_data.async_refresh()
         self.assertEqual(self.hass.states.get(OPERATING_MODE).state, "unavailable")
+        self.device.apply_writes = True
+        await self._call("set_operation_mode", operation_mode="standard")
+        self.assertEqual(self.device.commands[-1], {"Pow": 1, "Wmod": 0})
+        self.assertEqual(self.hass.states.get(POWER).state, "on")
+        self.assertEqual(self.hass.states.get(OPERATING_MODE).state, "standard")
+        self.assertEqual(self._state().state, "standard")
+        await self._call("set_operation_mode", operation_mode="off")
+        self.assertEqual(self.device.commands[-1], {"Pow": 0})
+        self.assertEqual(self._state().state, "off")
+
+        with self.assertRaises(ServiceValidationError):
+            await self._call("set_operation_mode", operation_mode="other")
 
     async def test_model_901d_temperature_limits(self):
         self.device.values["mid"] = MODE_PROFILE

@@ -23,7 +23,19 @@ gr_heater:
 - A separate **Power** switch controls the same `Pow` value. It appears under the heater's device alongside the temperature control.
 - Home Assistant polls every 30 seconds. After a write, it reads device status and reports an error if it cannot confirm the requested value.
 - On devices that report these fields, **Hot water amount**, **Mode code**, and **Work state code** are available as sensors. The water heater also exposes the corresponding `water_level_percent`, `gree_mode`, and `gree_work_state` attributes. Both codes are read-only raw values.
-- For protocol model ID `901d`, the **Operating mode** selector offers **Standard**, **Energy saving**, and **Quick** while the heater is on. The integration confirms each mode change by reading back `Wmod`.
+- For protocol model ID `901d`, the water heater has **Off**, **Standard**, **Energy saving**, and **Quick** operation modes. Selecting a heating mode turns the heater on. The separate **Operating mode** selector is available while the heater is on. The integration reads back the setting after each change.
+
+Add the **Water heater operation modes** feature to a Home Assistant thermostat card to show these controls on a dashboard.
+
+```yaml
+type: thermostat
+entity: water_heater.gree_air_to_water_heater
+features:
+  - type: water-heater-operation-modes
+    style: dropdown
+```
+
+Apple Home exposes **Off** and **Heat** for this accessory through the Home Assistant HomeKit Bridge. [HomeKit Bridge water heater mapping](https://github.com/home-assistant/core/blob/2026.11.2/homeassistant/components/homekit/type_thermostats.py#L539-L704)
 - Discovery lists devices advertising names that start with `GR-Heater`. Manual setup accepts a device when its V1 status contains the water-heater fields. Broadcast discovery requires local broadcast reachability. Manual entry requires direct UDP reachability.
 
 ## Compatibility
